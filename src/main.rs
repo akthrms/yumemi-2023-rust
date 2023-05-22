@@ -26,6 +26,6 @@ fn main() {
 
     println!("rank,player_id,handle_name,score");
     for result in extract_game_result(play_logs, entry_logs) {
-        println!("{}", result.joined_with_comma());
+        println!("{}", result);
     }
 }

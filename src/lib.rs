@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::{cmp::Ordering, collections::HashMap};
+use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
 const MAX_RANK_CNT: u64 = 10;
 
@@ -10,14 +10,14 @@ pub struct EntryLog {
 }
 
 #[allow(unused)]
-#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct PlayLog {
     create_timestamp: String,
     player_id: String,
     score: u64,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct GameResult {
     rank: u64,
     player_id: String,
@@ -25,9 +25,10 @@ pub struct GameResult {
     score: u64,
 }
 
-impl GameResult {
-    pub fn joined_with_comma(self) -> String {
-        format!(
+impl Display for GameResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
             "{},{},{},{}",
             self.rank, self.player_id, self.handle_name, self.score
         )
