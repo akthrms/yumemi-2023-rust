@@ -8,20 +8,14 @@ fn main() {
         process::exit(1);
     }
 
-    let entry_logs = match read_entry_logs(&args[0]) {
-        Ok(entry_log) => entry_log,
-        Err(err) => {
-            eprintln!("{}", err);
-            process::exit(1);
-        }
-    };
-    let mut play_logs = match read_play_logs(&args[1]) {
-        Ok(play_log) => play_log,
-        Err(err) => {
-            eprintln!("{}", err);
-            process::exit(1);
-        }
-    };
+    let entry_logs = read_entry_logs(&args[0]).unwrap_or_else(|err| {
+        eprintln!("{}", err);
+        process::exit(1);
+    });
+    let mut play_logs = read_play_logs(&args[1]).unwrap_or_else(|err| {
+        eprintln!("{}", err);
+        process::exit(1);
+    });
     sort_play_logs(&mut play_logs);
 
     println!("rank,player_id,handle_name,score");
