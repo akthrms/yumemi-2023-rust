@@ -1,21 +1,26 @@
+use anyhow::Context;
 use serde::Deserialize;
 use std::{cmp::Ordering, collections::HashMap, fmt::Display};
 
 const MAX_RANK_CNT: u64 = 10;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct EntryLog {
     player_id: String,
     handle_name: String,
 }
 
 #[allow(unused)]
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct PlayLog {
     create_timestamp: String,
     player_id: String,
     score: u64,
 }
+
+pub type EntryLogs = HashMap<String, String>;
+
+pub type PlayLogs = Vec<PlayLog>;
 
 #[derive(Debug, Clone)]
 pub struct GameResult {
@@ -35,22 +40,29 @@ impl Display for GameResult {
     }
 }
 
-pub fn read_entry_logs(filepath: &str) -> anyhow::Result<HashMap<String, EntryLog>> {
+pub fn read_entry_logs(filepath: &str) -> anyhow::Result<EntryLogs> {
     let mut entry_logs = HashMap::new();
 
-    let mut reader = csv::Reader::from_path(filepath)?;
+    let mut reader = csv::Reader::from_path(filepath)
+        .with_context(|| format!("failed to read file: {}", filepath))?;
+
     for entry_log in reader.deserialize() {
-        let entry_log: EntryLog = entry_log?;
-        entry_logs.insert(entry_log.player_id.clone(), entry_log);
+        let EntryLog {
+            player_id,
+            handle_name,
+        } = entry_log?;
+        entry_logs.insert(player_id, handle_name);
     }
 
     Ok(entry_logs)
 }
 
-pub fn read_play_logs(filepath: &str) -> anyhow::Result<Vec<PlayLog>> {
+pub fn read_play_logs(filepath: &str) -> anyhow::Result<PlayLogs> {
     let mut play_logs = HashMap::new();
 
-    let mut reader = csv::Reader::from_path(filepath)?;
+    let mut reader = csv::Reader::from_path(filepath)
+        .with_context(|| format!("failed to read file: {}", filepath))?;
+
     for play_log in reader.deserialize() {
         let play_log: PlayLog = play_log?;
         play_logs
@@ -69,17 +81,14 @@ pub fn read_play_logs(filepath: &str) -> anyhow::Result<Vec<PlayLog>> {
         .collect())
 }
 
-pub fn sort_play_logs(play_logs: &mut [PlayLog]) {
+pub fn sort_play_logs(play_logs: &mut PlayLogs) {
     play_logs.sort_by(|a, b| match b.score.cmp(&a.score) {
         Ordering::Equal => a.player_id.cmp(&b.player_id),
         other => other,
     });
 }
 
-pub fn extract_game_result(
-    play_logs: Vec<PlayLog>,
-    entry_logs: HashMap<String, EntryLog>,
-) -> Vec<GameResult> {
+pub fn extract_game_result(play_logs: PlayLogs, entry_logs: EntryLogs) -> Vec<GameResult> {
     let mut result = Vec::new();
 
     let mut rank = 1;
@@ -87,7 +96,7 @@ pub fn extract_game_result(
     let mut prev_score = 0;
 
     for play_log in play_logs {
-        if let Some(entry_log) = entry_logs.get(&play_log.player_id) {
+        if let Some(handle_name) = entry_logs.get(&play_log.player_id) {
             if play_log.score < prev_score {
                 rank = result_cnt;
             }
@@ -99,7 +108,7 @@ pub fn extract_game_result(
             result.push(GameResult {
                 rank,
                 player_id: play_log.player_id,
-                handle_name: entry_log.handle_name.clone(),
+                handle_name: handle_name.clone(),
                 score: play_log.score,
             });
             result_cnt += 1;
